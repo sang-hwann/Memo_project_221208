@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Title</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500&display=swap" rel="stylesheet">
+
+<script>
+    $(document).ready(function () {
+        // HTML 문서를 로드할 때마다 실행합니다.
+        getMessages();
+    })
+
+    function getMessages() {
+        $('#cards-box').empty(); //기존 메모 삭제
+
+        //메모 목록을 불러와 html로 붙임
+        $.ajax({
+            type: "GET",
+            url: "/api/memosHW",
+            data: {},
+
+            success: function (response) {
+                for (let i = 0; i < response.length; i++) {
+                    let message = response[i];
+                    let id = message['id'];
+                    let title = message['title'];
+                    let username = message['username'];
+                    let contents = message['contents'];
+                    let password = message['password'];
+                    let modifiedAt = message['modifiedAt'];
+                    addHTML(id, title, username, contents, password, modifiedAt);
+                }
+            }
+        });
+    }
+
+    //메모1개를 html로 만들어 body에 붙인다.
+    function addHTML(id, title, username, contents, password, modifiedAt) {
+        let tempHtml = makeMessage(id, title, username, contents, password, modifiedAt);
+        $('#cards-box').append(tempHtml);
+    }
+
+    function makeMessage(id, title, username, contents, password, modifiedAt) {
+        return `<div class="card">
+                        <div class="title_b_b">
+                            <div id="${id}-title" class="title">
+                                ${title}
+                            </div>
+                            <div id="${id}-title-editarea" class="edit">
+                                <textarea id="${id}-title-textarea" class="te-edit" name="title" id="" cols="30" rows="5"></textarea>
+                            </div>
+                        </div>
+
+
+                         <div class="username_b">
+                            <div id="${id}-username" class="username">
+                                ${username}
+                            </div>
+                            <div id="${id}-username-editarea" class="edit">
+                                <textarea id="${id}-username-textarea" class="te-edit" name="username" id="" cols="30" rows="5"></textarea>
+                            </div>
+                        </div>
+
+
+                        <!-- contents 조회/수정 영역-->
+                        <div class="contents_b">
+                            <div id="${id}-contents" class="contents">
+                                ${contents}
+                            </div>
+                            <div id="${id}-contents-editarea" class="edit">
+                                <textarea id="${id}-contents-textarea" class="te-edit" name="contents" id="" cols="30" rows="5"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="password_b">
+                            <div id="${id}-password" class="password">
+                                ${password}
+                            </div>
+                            <div id="${id}-password-editarea" class="edit">
+                                <textarea id="${id}-password-textarea" class="te-edit" name="password" id="" cols="30" rows="5"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- 버튼 영역-->
+                        <div class="footer">
+                            <img id="${id}-edit" class="icon-start-edit" src="/images/edit.png" alt="" onclick="editPost('${id}')">
+                            <img id="${id}-delete" class="icon-delete" src="/images/delete.png" alt="" onclick="deleteOne('${id}')">
+                            <img id="${id}-submit" class="icon-end-edit" src="/images/done.png" alt="" onclick="submitEdit('${id}')">
+                        </div>
+                    </div>        `;
+    }
+
+    //메모에 빈 내용이있는지 확인
+    function isValidContents(title, username, contents, password) {
+        if (title == '') {
+            alert('제목을 입력해주세요');
+            return false;
+        } else if (username == '') {
+            alert('이름을 입력해주세요');
+            return false;
+        } else if (contents == '') {
+            alert('내용을 입력해주세요');
+            return false;
+        } else if (password == '') {
+            alert('비밀번호을 입력해주세요');
+            return false;
+        }
+    }
+
+    //메모를 작성합니다.
+    function writePost() {
+        let title = $('#title').val();
+        let username = $('#username').val();
+        let contents = $('#contents').val();
+        let password = $('#password').val();
+
+        //입력값이 빈곳이있는지 확인
+        if (isValidContents(title, username, contents, password) == false) {
+            return;
+        }
+        //데이터를 json으로 전환
+        let data = {'title': title, 'username': username, 'contents': contents, 'password': password};
+
+        $.ajax({
+            type: "POST", //방식 - 보내는 방식
+            url: "/api/memosHW",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert('글이 정상적으로 작성되었습니다.');
+                window.location.reload();
+            }
+        });
+    }
+
+    function editPost(id) {
+        showEdits(id);
+        let title = $(`#${id}-title-textarea`).text().trim();
+        let username = $(`#${id}-username-textarea`).text().trim();
+        let contents = $(`#${id}-contents-textarea`).text().trim();
+        let password = $(`#${id}-password-textarea`).text().trim();
+
+        $(`#${id}-title`).val(title);
+        $(`#${id}-username`).val(username);
+        $(`#${id}-content`).val(contents);
+        $(`#${id}-password`).val(password);
+    }
+
+    function showEdits(id) {
+        $(`#${id}-title-editarea`).show();
+        $(`#${id}-username-editarea`).show();
+        $(`#${id}-contents-editarea`).show();
+        $(`#${id}-password-editarea`).show();
+        $(`#${id}-submit`).show();
+        $(`#${id}-delete`).show();
+
+        $(`#${id}-title`).hide();
+        $(`#${id}-username`).hide();
+        $(`#${id}-contents`).hide();
+        $(`#${id}-password`).hide();
+        $(`#${id}-edit`).hide();
+
+
+    }
+
+    // 메모를 수정합니다.
+    function submitEdit(id) {
+        // 1. 작성 대상 메모의 username과 contents 를 확인합니다.
+        let title = $(`#${id}-title-textarea`).text().trim();
+        let username = $(`#${id}-username-textarea`).text().trim();
+        let contents = $(`#${id}-contents-textarea`).val().trim();
+        let password = $(`#${id}-password-textarea`).text().trim();
+
+        // 2. 작성한 메모가 올바른지 isValidContents 함수를 통해 확인합니다.
+        if (isValidContents(title, username, contents, password) == false) {
+            return;
+        }
+
+        // 3. 전달할 data JSON으로 만듭니다.
+        let data = {'title': title, 'username': username, 'contents': contents, 'password': password};
+
+        // 4. PUT /api/memos/{id} 에 data를 전달합니다.
+        $.ajax({
+            type: "PUT",
+            url: `/api/memosHW/${id}`,
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert('글 변경에 성공하였습니다.');
+                window.location.reload();
+            }
+        });
+    }
+
+    function deleteOne(id) {
+        $.ajax({
+            type: "DELETE",
+            url: `/api/memosHW/${id}`,
+            success: function (response) {
+                alert('글 삭제에 성공하였습니다.');
+                window.location.reload();
+            }
+        })
+    }
+</script>
+
+
+<style>
+    @import url(//spoqa.github.io/spoqa-han-sans/css/SpoqaHanSans-kr.css);
+
+    body {
+        margin: 0px;
+    }
+
+    .wrap {
+        background: red;
+        width: 600px;
+        margin: 10px auto 10px auto;
+    }
+
+    .area-write {
+        position: relative;
+        width: 538px;
+    }
+
+    .area-write img {
+        cursor: pointer;
+        position: absolute;
+        width: 22.2px;
+        height: 18.7px;
+        bottom: 15px;
+        right: 17px;
+    }
+
+    .background-header {
+        position: fixed;
+        z-index: -1;
+        top: 0px;
+        width: 100%;
+        height: 428px;
+        background-color: #339af0;
+    }
+
+    .background-body {
+        position: fixed;
+        z-index: -1;
+        top: 428px;
+        height: 100%;
+        width: 100%;
+        background-color: #dee2e6;
+    }
+
+    .header {
+        margin-top: 50px;
+    }
+
+    .header h2 {
+        font-family: 'Noto Sans KR', sans-serif;
+        height: 33px;
+        font-size: 42px;
+        font-weight: 500;
+        font-stretch: normal;
+        font-style: normal;
+        line-height: 0.79;
+        letter-spacing: -0.5px;
+        text-align: center;
+        color: #ffffff;
+    }
+
+    .header p {
+        margin: 40px auto;
+        width: 217px;
+        height: 48px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 16px;
+        font-weight: 500;
+        font-stretch: normal;
+        font-style: normal;
+        line-height: 1.5;
+        letter-spacing: -1.12px;
+        text-align: center;
+        color: #ffffff;
+    }
+
+    textarea.field {
+        width: 502px !important;
+        height: 146px;
+        border-radius: 5px;
+        background-color: #ffffff;
+        border: none;
+        padding: 18px;
+        resize: none;
+    }
+
+    textarea.field::placeholder {
+        width: 216px;
+        height: 16px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 16px;
+        font-weight: normal;
+        font-stretch: normal;
+        font-style: normal;
+        line-height: 1;
+        letter-spacing: -0.96px;
+        text-align: left;
+        color: #868e96;
+    }
+
+    .card {
+        width: 538px;
+        border-radius: 5px;
+        background-color: #ffffff;
+        margin-bottom: 12px;
+    }
+
+    .card .metadata {
+        position: relative;
+        display: flex;
+        font-family: 'Spoqa Han Sans';
+        font-size: 11px;
+        font-weight: normal;
+        font-stretch: normal;
+        font-style: normal;
+        line-height: 1;
+        letter-spacing: -0.77px;
+        text-align: left;
+        color: #adb5bd;
+        height: 14px;
+        padding: 10px 23px;
+    }
+
+    .card .metadata .title {
+        margin-left: 20px;
+    }
+    .card .metadata .username {
+        margin-left: 20px;
+    }
+    .card .metadata .contents {
+        margin-left: 20px;
+    }
+    .card .metadata .password {
+        margin-left: 20px;
+    }
+    textarea{
+    }
+    textarea.title {
+        width: 502px !important;
+        height: 20px;
+        border-radius: 5px;
+        background-color: #ffffff;
+        border: none;
+        padding: 18px;
+        resize: none;
+    }
+
+    textarea.title::placeholder {
+        width: 216px;
+        height: 16px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 16px;
+        font-weight: normal;
+        font-stretch: normal;
+        font-style: normal;
+        line-height: 1;
+        letter-spacing: -0.96px;
+        text-align: left;
+        color: #868e96;
+    }
+    textarea.username {
+        width: 502px !important;
+        height: 20px;
+        border-radius: 5px;
+        background-color: #ffffff;
+        border: none;
+        padding: 18px;
+        resize: none;
+    }
+
+    textarea.username::placeholder {
+        width: 216px;
+        height: 16px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 16px;
+        font-weight: normal;
+        font-stretch: normal;
+        font-style: normal;
+        line-height: 1;
+        letter-spacing: -0.96px;
+        text-align: left;
+        color: #868e96;
+    }
+
+    textarea.contents {
+        width: 502px !important;
+        height: 146px;
+        border-radius: 5px;
+        background-color: #ffffff;
+        border: none;
+        padding: 18px;
+        resize: none;
+    }
+
+    textarea.contents::placeholder {
+        width: 216px;
+        height: 16px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 16px;
+        font-weight: normal;
+        font-stretch: normal;
+        font-style: normal;
+        line-height: 1;
+        letter-spacing: -0.96px;
+        text-align: left;
+        color: #868e96;
+    }
+    textarea.password {
+        width: 502px !important;
+        height: 20px;
+        border-radius: 5px;
+        background-color: #ffffff;
+        border: none;
+        padding: 18px;
+        resize: none;
+    }
+
+    textarea.password::placeholder {
+        width: 216px;
+        height: 16px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 16px;
+        font-weight: normal;
+        font-stretch: normal;
+        font-style: normal;
+        line-height: 1;
+        letter-spacing: -0.96px;
+        text-align: left;
+        color: #868e96;
+    }
+
+    .title_b {
+        text-align: center;
+    }
+
+    .title {
+        height: 20px;
+        width: 90%;
+        align-items: center;
+        margin: 10px auto;
+        text-align: center;
+        align-items: center;
+    }
+
+    #cards-box {
+        margin-top: 12px;
+    }
+    .username_b {
+        text-align: center;
+    }
+    .contents_b{
+        text-align: center;
+    }
+    .password_b{
+        text-align: center;
+    }
+    .title_b div.edit {
+        display: none;
+    }
+    .username_b div.edit {
+        display: none;
+    }
+    .contents div.edit {
+        display: none;
+    }
+    .password_b div.edit {
+        display: none;
+    }
+    .title_b textarea.te-edit {
+        border-right: none;
+        border-top: none;
+        border-left: none;
+        resize: none;
+        border-bottom: 1px solid #212529;
+        width: 100%;
+        font-family: 'Spoqa Han Sans';
+    }
+    .username_b textarea.te-edit {
+        border-right: none;
+        border-top: none;
+        border-left: none;
+        resize: none;
+        border-bottom: 1px solid #212529;
+        width: 100%;
+        font-family: 'Spoqa Han Sans';
+    }
+    .contents_b textarea.te-edit {
+        border-right: none;
+        border-top: none;
+        border-left: none;
+        resize: none;
+        border-bottom: 1px solid #212529;
+        width: 100%;
+        font-family: 'Spoqa Han Sans';
+    }
+    .password_b textarea.te-edit {
+        border-right: none;
+        border-top: none;
+        border-left: none;
+        resize: none;
+        border-bottom: 1px solid #212529;
+        width: 100%;
+        font-family: 'Spoqa Han Sans';
+    }
+    .footer img.icon-start-edit {
+        cursor: pointer;
+        position: absolute;
+        bottom: 14px;
+        right: 55px;
+        width: 18px;
+        height: 18px;
+    }
+
+    .footer img.icon-end-edit {
+        cursor: pointer;
+        position: absolute;
+        display: none;
+        bottom: 14px;
+        right: 55px;
+        width: 20px;
+        height: 15px;
+    }
+
+    .footer img.icon-delete {
+        cursor: pointer;
+        position: absolute;
+        bottom: 12px;
+        right: 19px;
+        width: 14px;
+        height: 18px;
+    }
+</style>
+
+
+</head>
+
+<body>
+<div class="background-header">
+
+</div>
+<div class="background-body">
+
+</div>
+
+<div class="wrap">
+    <div class="header">
+        <h2>Blog S</h2>
+        <p>
+            글을 입력하세요.
+        </p>
+    </div>
+
+    <div class="area-write">
+        <textarea class="title" placeholder="제목 " name="title" th:id="title" cols="30"
+                  rows="10"></textarea>
+        <textarea class="username" placeholder="name " name="username" th:id="username" cols="30"
+                  rows="10"></textarea>
+        <textarea class="contents" placeholder="공유하고 싶은 소식을 입력하세요. " name="contents" th:id="contents" cols="30"
+                  rows="10"></textarea>
+        <img src="/images/send.png" alt="" onclick="writePost()">
+        <textarea class="password" placeholder="password " name="password" th:id="password" cols="30"
+                  rows="10"></textarea>
+    </div>
+
+    <div id="cards-box" class="area-read">
+
+    </div>
+
+</div>
+</body>
+</html>
+
+
